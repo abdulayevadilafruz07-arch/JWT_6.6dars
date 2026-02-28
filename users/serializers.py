@@ -1,4 +1,8 @@
 from rest_framework import serializers, status
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
+
 from .models import CustomUser
 from rest_framework.exceptions import ValidationError
 
@@ -48,4 +52,66 @@ class SignUpSerializer(serializers.ModelSerializer):
         )
 
         return user
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ['username', 'first_name', 'last_name', 'email', 'phone_number' ]
+
+        def update(self, instance, validated_data):
+            instance.username = validated_data.get('username', instance.username)
+            instance.first_name = validated_data.get('first_name', instance.first_name)
+            instance.last_name = validated_data.get('last_name', instance.last_name)
+            instance.email = validated_data.get('email', instance.email)
+            instance.phone_number = validated_data.get('phone_number', instance.phone_number)
+
+            instance.save()
+
+            return instance
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ['username', 'first_name', 'last_name', 'email', 'phone_number']
+
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(write_only=True, required=True)
+    new_password = serializers.CharField(write_only=True, required=True)
+    confirm_password = serializers.CharField(write_only=True, required=True)
+
+    def validate(self, attrs):
+        old_password = attrs.get('old_password')
+        new_password = attrs.get('new_password')
+        confirm_password = attrs.get('confirm_password')
+        if old_password == new_password:
+            raise ValidationError({
+                'message': 'yangi parol eskisi bilan bir xil bolmasligi kerak'
+            })
+
+        if new_password != confirm_password:
+            raise ValidationError({
+                "message":"Yangi parollar mos emas"
+            })
+        return attrs
+
+
+    def update(self, instance, validated_data):
+        user = instance.check_password(validated_data.get['old_password'])
+        user.set_password(validated_data.get['new_password'])
+        user.save()
+        return user
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
